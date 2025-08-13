@@ -14,7 +14,7 @@ import java.util.Optional;
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Transactional
-class UserEntityMappingTest {
+class UserRepositoryIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
