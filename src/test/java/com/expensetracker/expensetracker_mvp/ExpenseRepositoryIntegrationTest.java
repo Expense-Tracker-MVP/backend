@@ -469,7 +469,10 @@ class ExpenseRepositoryIntegrationTest {
                 .build();
 
         // This should throw an exception due to database constraint
-        assertThrows(Exception.class, () -> expenseRepository.save(expense));
+        assertThrows(Exception.class, () -> {
+                expenseRepository.save(expense);
+                expenseRepository.flush();
+        });
     }
 
     @Test
@@ -499,6 +502,9 @@ class ExpenseRepositoryIntegrationTest {
                 .build();
 
         // This should throw an exception due to database constraint
-        assertThrows(Exception.class, () -> expenseRepository.save(expense));
+        assertThrows(Exception.class, () -> {
+                expenseRepository.save(expense);
+                expenseRepository.flush();
+        });
     }
 }

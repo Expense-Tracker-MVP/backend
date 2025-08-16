@@ -233,9 +233,10 @@ class CategoryRepositoryIntegrationTest {
                 .name("Duplicate Name")
                 .build();
 
-        // This should not throw an exception due to @Transactional, but the constraint should be enforced
-        // in a real scenario without @Transactional
-        assertDoesNotThrow(() -> categoryRepository.save(category2));
+        assertThrows(Exception.class, () -> {
+                categoryRepository.save(category2);
+                categoryRepository.flush();
+        });
     }
 
     @Test
@@ -255,6 +256,9 @@ class CategoryRepositoryIntegrationTest {
                 .build();
 
         // This should throw an exception due to database constraint
-        assertThrows(Exception.class, () -> categoryRepository.save(category));
+        assertThrows(Exception.class, () -> {
+                categoryRepository.save(category);
+                categoryRepository.flush();
+        });
     }
 }
