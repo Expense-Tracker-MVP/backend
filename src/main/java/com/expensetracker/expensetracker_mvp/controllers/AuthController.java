@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final JwtService jwtService;
@@ -101,6 +103,45 @@ public class AuthController {
 
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+    }
+
+    @DeleteMapping("/user")
+    public ResponseEntity<?> deleteCurrentUser(Authentication authentication, HttpServletResponse response) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+
+        try {
+            User user = (User) authentication.getPrincipal();
+            
+            // Log the deletion attempt
+            log.info("User deletion requested for user ID: {}, email: {}", user.getId(), user.getEmail());
+            
+            // Delete the user from the database
+            userRepository.deleteById(user.getId());
+            
+            // Clear the security context
+            SecurityContextHolder.clearContext();
+            
+            // Clear refresh token cookie
+            Cookie refreshCookie = new Cookie("refreshToken", "");
+            refreshCookie.setHttpOnly(true);
+            refreshCookie.setSecure(false);
+            refreshCookie.setPath("/");
+            refreshCookie.setMaxAge(0); // Delete cookie
+            response.addCookie(refreshCookie);
+            
+            log.info("User account deleted successfully for user ID: {}", user.getId());
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "User account deleted successfully",
+                "deletedUserId", user.getId().toString()
+            ));
+            
+        } catch (Exception e) {
+            log.error("Error deleting user account: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to delete user account"));
+        }
     }
 
     @GetMapping("/login/google")
