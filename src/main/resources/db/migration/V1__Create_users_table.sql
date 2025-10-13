@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
     provider VARCHAR(50) NOT NULL,
     provider_id VARCHAR(255) NOT NULL,
     provider_user_id VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     -- Composite unique constraint for provider lookups
     CONSTRAINT uk_users_provider_id UNIQUE (provider, provider_id)
