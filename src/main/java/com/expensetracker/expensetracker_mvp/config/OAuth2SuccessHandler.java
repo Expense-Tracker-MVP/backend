@@ -41,6 +41,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // Extract user information from OAuth2User
         String email = oauth2User.getAttribute("email");
         String providerId = oauth2User.getAttribute("sub");
+        String displayName = oauth2User.getAttribute("name");
         String provider = "google"; // we are only handling Google for now
 
         if (email == null || email.isEmpty()) {
@@ -54,7 +55,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .orElseGet(() -> {
                     // Check if user exists with same email but different provider
                     return userRepository.findByEmail(email)
-                            .orElseGet(() -> createNewUser(provider, email, providerId));
+                            .orElseGet(() -> createNewUser(provider, email, providerId, displayName));
                 });
 
         // Update user info if needed
@@ -86,14 +87,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.sendRedirect(redirectUrl);
     }
 
-    private User createNewUser(String provider, String email, String providerId) {
-        log.info("Creating new user for provider: {}, email: {}", provider, email);
+    private User createNewUser(String provider, String email, String providerId, String displayName) {
+        log.info("Creating new user for provider: {}, email: {}, displayName: {}", provider, email, displayName);
 
         User user = User.builder()
                 .email(email)
                 .provider(provider)
                 .providerId(providerId)
                 .providerUserId(providerId) // For now, same as providerId
+                .displayName(displayName)
                 .createdAt(LocalDateTime.now())
                 .build();
 
