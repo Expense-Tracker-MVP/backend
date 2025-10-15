@@ -1,8 +1,13 @@
 package com.expensetracker.expensetracker_mvp.controllers;
 
+import com.expensetracker.expensetracker_mvp.dtos.FileRequestDto;
+import com.expensetracker.expensetracker_mvp.dtos.FileResponseDto;
 import com.expensetracker.expensetracker_mvp.entities.File;
+import com.expensetracker.expensetracker_mvp.mappers.FileMapper;
 import com.expensetracker.expensetracker_mvp.repositories.FileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -21,39 +26,43 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/files")
-@CrossOrigin(origins = "${app.frontend.url}")
+@Tag(name = "Files", description = "API for file upload, download and management")
+@RequiredArgsConstructor
 public class FileController {
 
-    @Autowired
-    private FileRepository fileRepository;
+    private final FileRepository fileRepository;
+    private final FileMapper fileMapper;
 
     private final String uploadDir = "uploads/"; // Configure this path as needed
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<File>> getFilesByUser(@PathVariable UUID userId) {
+    public ResponseEntity<List<FileResponseDto>> getFilesByUser(@PathVariable UUID userId) {
         List<File> files = fileRepository.findByUserIdOrderByUploadedAtDesc(userId);
-        return ResponseEntity.ok(files);
+        List<FileResponseDto> fileDtos = fileMapper.toResponseDtoList(files);
+        return ResponseEntity.ok(fileDtos);
     }
 
     @GetMapping("/expense/{expenseId}")
-    public ResponseEntity<List<File>> getFilesByExpense(@PathVariable UUID expenseId) {
+    public ResponseEntity<List<FileResponseDto>> getFilesByExpense(@PathVariable UUID expenseId) {
         List<File> files = fileRepository.findByExpenseIdOrderByUploadedAtDesc(expenseId);
-        return ResponseEntity.ok(files);
+        List<FileResponseDto> fileDtos = fileMapper.toResponseDtoList(files);
+        return ResponseEntity.ok(fileDtos);
     }
 
     @GetMapping("/user/{userId}/purpose/{purpose}")
-    public ResponseEntity<List<File>> getFilesByPurpose(
+    public ResponseEntity<List<FileResponseDto>> getFilesByPurpose(
             @PathVariable UUID userId, 
             @PathVariable String purpose) {
         
         List<File> files = fileRepository.findByUserIdAndPurpose(userId, purpose);
-        return ResponseEntity.ok(files);
+        List<FileResponseDto> fileDtos = fileMapper.toResponseDtoList(files);
+        return ResponseEntity.ok(fileDtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<File> getFileById(@PathVariable UUID id) {
+    public ResponseEntity<FileResponseDto> getFileById(@PathVariable UUID id) {
         Optional<File> file = fileRepository.findById(id);
-        return file.map(ResponseEntity::ok)
+        return file.map(f -> ResponseEntity.ok(fileMapper.toResponseDto(f)))
                   .orElse(ResponseEntity.notFound().build());
     }
 
@@ -85,7 +94,7 @@ public class FileController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<File> uploadFile(
+    public ResponseEntity<FileResponseDto> uploadFile(
             @RequestParam("file") MultipartFile multipartFile,
             @RequestParam("userId") UUID userId,
             @RequestParam(value = "expenseId", required = false) UUID expenseId,
@@ -117,7 +126,8 @@ public class FileController {
                     .build();
             
             File savedFile = fileRepository.save(fileEntity);
-            return ResponseEntity.ok(savedFile);
+            FileResponseDto responseDto = fileMapper.toResponseDto(savedFile);
+            return ResponseEntity.ok(responseDto);
             
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
@@ -125,16 +135,15 @@ public class FileController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<File> updateFile(@PathVariable UUID id, @RequestBody File fileDetails) {
+    public ResponseEntity<FileResponseDto> updateFile(@PathVariable UUID id, @RequestBody FileRequestDto fileRequestDto) {
         Optional<File> optionalFile = fileRepository.findById(id);
         
         if (optionalFile.isPresent()) {
             File file = optionalFile.get();
-            file.setExpenseId(fileDetails.getExpenseId());
-            file.setPurpose(fileDetails.getPurpose());
-            
+            fileMapper.updateEntityFromDto(fileRequestDto, file);
             File updatedFile = fileRepository.save(file);
-            return ResponseEntity.ok(updatedFile);
+            FileResponseDto responseDto = fileMapper.toResponseDto(updatedFile);
+            return ResponseEntity.ok(responseDto);
         } else {
             return ResponseEntity.notFound().build();
         }

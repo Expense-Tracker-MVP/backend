@@ -1,12 +1,14 @@
 package com.expensetracker.expensetracker_mvp.controllers;
 
+import com.expensetracker.expensetracker_mvp.dtos.UserResponseDto;
 import com.expensetracker.expensetracker_mvp.entities.User;
+import com.expensetracker.expensetracker_mvp.mappers.UserMapper;
 import com.expensetracker.expensetracker_mvp.repositories.UserRepository;
 import com.expensetracker.expensetracker_mvp.services.JwtService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,12 +25,14 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Authentication", description = "API for user authentication and account management")
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @GetMapping("/user")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
@@ -37,11 +41,7 @@ public class AuthController {
         }
 
         User user = (User) authentication.getPrincipal();
-        UserResponse userResponse = new UserResponse(
-                user.getId().toString(),
-                user.getEmail(),
-                user.getProvider(),
-                user.getCreatedAt().toString());
+        UserResponseDto userResponse = userMapper.toResponseDto(user);
 
         Map<String, Object> response = new HashMap<>();
         response.put("authenticated", true);
@@ -78,11 +78,7 @@ public class AuthController {
 
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("accessToken", newAccessToken);
-            responseBody.put("user", new UserResponse(
-                    user.getId().toString(),
-                    user.getEmail(),
-                    user.getProvider(),
-                    user.getCreatedAt().toString()));
+            responseBody.put("user", userMapper.toResponseDto(user));
 
             return ResponseEntity.ok(responseBody);
 
@@ -158,13 +154,5 @@ public class AuthController {
                     .orElse(null);
         }
         return null;
-    }
-
-    @Data
-    public static class UserResponse {
-        private final String id;
-        private final String email;
-        private final String provider;
-        private final String createdAt;
     }
 }

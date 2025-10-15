@@ -1,8 +1,17 @@
 package com.expensetracker.expensetracker_mvp.controllers;
 
+import com.expensetracker.expensetracker_mvp.dtos.ExpenseRequestDto;
+import com.expensetracker.expensetracker_mvp.dtos.ExpenseResponseDto;
+import com.expensetracker.expensetracker_mvp.entities.Category;
 import com.expensetracker.expensetracker_mvp.entities.Expense;
+import com.expensetracker.expensetracker_mvp.entities.User;
+import com.expensetracker.expensetracker_mvp.mappers.ExpenseMapper;
+import com.expensetracker.expensetracker_mvp.repositories.CategoryRepository;
 import com.expensetracker.expensetracker_mvp.repositories.ExpenseRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.expensetracker.expensetracker_mvp.repositories.UserRepository;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,35 +24,41 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/expenses")
-@CrossOrigin(origins = "${app.frontend.url}")
+@Tag(name = "Expenses", description = "API for managing expenses and expense tracking")
+@RequiredArgsConstructor
 public class ExpenseController {
 
-    @Autowired
-    private ExpenseRepository expenseRepository;
+    private final ExpenseRepository expenseRepository;
+    private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+    private final ExpenseMapper expenseMapper;
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Expense>> getExpensesByUser(@PathVariable UUID userId) {
+    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByUser(@PathVariable UUID userId) {
         List<Expense> expenses = expenseRepository.findByUserIdOrderByTransactionDateDesc(userId);
-        return ResponseEntity.ok(expenses);
+        List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
+        return ResponseEntity.ok(expenseDtos);
     }
 
     @GetMapping("/user/{userId}/date-range")
-    public ResponseEntity<List<Expense>> getExpensesByDateRange(
+    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByDateRange(
             @PathVariable UUID userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
         List<Expense> expenses = expenseRepository.findByUserIdAndTransactionDateBetween(userId, startDate, endDate);
-        return ResponseEntity.ok(expenses);
+        List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
+        return ResponseEntity.ok(expenseDtos);
     }
 
     @GetMapping("/user/{userId}/category/{categoryId}")
-    public ResponseEntity<List<Expense>> getExpensesByCategory(
+    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByCategory(
             @PathVariable UUID userId, 
             @PathVariable Integer categoryId) {
         
         List<Expense> expenses = expenseRepository.findByUserIdAndCategoryId(userId, categoryId);
-        return ResponseEntity.ok(expenses);
+        List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
+        return ResponseEntity.ok(expenseDtos);
     }
 
     @GetMapping("/user/{userId}/total")
@@ -57,43 +72,65 @@ public class ExpenseController {
     }
 
     @GetMapping("/user/{userId}/recent")
-    public ResponseEntity<List<Expense>> getRecentExpenses(
+    public ResponseEntity<List<ExpenseResponseDto>> getRecentExpenses(
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "30") int days) {
         
         LocalDate sinceDate = LocalDate.now().minusDays(days);
         List<Expense> expenses = expenseRepository.findRecentExpensesByUserId(userId, sinceDate);
-        return ResponseEntity.ok(expenses);
+        List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
+        return ResponseEntity.ok(expenseDtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Expense> getExpenseById(@PathVariable UUID id) {
+    public ResponseEntity<ExpenseResponseDto> getExpenseById(@PathVariable UUID id) {
         Optional<Expense> expense = expenseRepository.findById(id);
-        return expense.map(ResponseEntity::ok)
+        return expense.map(exp -> ResponseEntity.ok(expenseMapper.toResponseDto(exp)))
                      .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Expense> createExpense(@RequestBody Expense expense) {
+    public ResponseEntity<ExpenseResponseDto> createExpense(@RequestBody ExpenseRequestDto expenseRequestDto) {
+        Expense expense = expenseMapper.toEntity(expenseRequestDto);
+        
+        // Set user and category relationships from IDs
+        User user = userRepository.findById(expenseRequestDto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Category category = categoryRepository.findById(expenseRequestDto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+        
+        expense.setUser(user);
+        expense.setCategory(category);
+        
         Expense savedExpense = expenseRepository.save(expense);
-        return ResponseEntity.ok(savedExpense);
+        ExpenseResponseDto responseDto = expenseMapper.toResponseDto(savedExpense);
+        return ResponseEntity.ok(responseDto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Expense> updateExpense(@PathVariable UUID id, @RequestBody Expense expenseDetails) {
+    public ResponseEntity<ExpenseResponseDto> updateExpense(@PathVariable UUID id, @RequestBody ExpenseRequestDto expenseRequestDto) {
         Optional<Expense> optionalExpense = expenseRepository.findById(id);
         
         if (optionalExpense.isPresent()) {
             Expense expense = optionalExpense.get();
-            expense.setCategoryId(expenseDetails.getCategoryId());
-            expense.setDescription(expenseDetails.getDescription());
-            expense.setAmount(expenseDetails.getAmount());
-            expense.setCurrency(expenseDetails.getCurrency());
-            expense.setTransactionDate(expenseDetails.getTransactionDate());
-            expense.setSource(expenseDetails.getSource());
+            expenseMapper.updateEntityFromDto(expenseRequestDto, expense);
+            
+            // Update user and category relationships if provided
+            if (expenseRequestDto.getUserId() != null) {
+                User user = userRepository.findById(expenseRequestDto.getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+                expense.setUser(user);
+            }
+            
+            if (expenseRequestDto.getCategoryId() != null) {
+                Category category = categoryRepository.findById(expenseRequestDto.getCategoryId())
+                        .orElseThrow(() -> new RuntimeException("Category not found"));
+                expense.setCategory(category);
+            }
             
             Expense updatedExpense = expenseRepository.save(expense);
-            return ResponseEntity.ok(updatedExpense);
+            ExpenseResponseDto responseDto = expenseMapper.toResponseDto(updatedExpense);
+            return ResponseEntity.ok(responseDto);
         } else {
             return ResponseEntity.notFound().build();
         }

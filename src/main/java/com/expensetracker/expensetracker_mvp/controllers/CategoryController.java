@@ -1,13 +1,14 @@
 package com.expensetracker.expensetracker_mvp.controllers;
 
+import com.expensetracker.expensetracker_mvp.dtos.CategoryRequestDto;
+import com.expensetracker.expensetracker_mvp.dtos.CategoryResponseDto;
 import com.expensetracker.expensetracker_mvp.entities.Category;
+import com.expensetracker.expensetracker_mvp.entities.User;
+import com.expensetracker.expensetracker_mvp.mappers.CategoryMapper;
 import com.expensetracker.expensetracker_mvp.repositories.CategoryRepository;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.expensetracker.expensetracker_mvp.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,61 +18,60 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/categories")
-@CrossOrigin(origins = "${app.frontend.url}")
 @Tag(name = "Categories", description = "API for managing expense categories")
+@RequiredArgsConstructor
 public class CategoryController {
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final CategoryMapper categoryMapper;
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Get categories by user", description = "Retrieve all categories for a specific user, ordered by name")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Categories retrieved successfully"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
-    public ResponseEntity<List<Category>> getCategoriesByUser(
-            @Parameter(description = "User ID") @PathVariable UUID userId) {
+    public ResponseEntity<List<CategoryResponseDto>> getCategoriesByUser(@PathVariable UUID userId) {
         List<Category> categories = categoryRepository.findByUserIdOrderByName(userId);
-        return ResponseEntity.ok(categories);
+        List<CategoryResponseDto> categoryDtos = categoryMapper.toResponseDtoList(categories);
+        return ResponseEntity.ok(categoryDtos);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get category by ID", description = "Retrieve a specific category by its ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Category found"),
-        @ApiResponse(responseCode = "404", description = "Category not found")
-    })
-    public ResponseEntity<Category> getCategoryById(
-            @Parameter(description = "Category ID") @PathVariable Integer id) {
+    public ResponseEntity<CategoryResponseDto> getCategoryById(@PathVariable Integer id) {
         Optional<Category> category = categoryRepository.findById(id);
-        return category.map(ResponseEntity::ok)
+        return category.map(cat -> ResponseEntity.ok(categoryMapper.toResponseDto(cat)))
                       .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    @Operation(summary = "Create category", description = "Create a new expense category")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Category created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid category data")
-    })
-    public ResponseEntity<Category> createCategory(@RequestBody Category category) {
+    public ResponseEntity<CategoryResponseDto> createCategory(@RequestBody CategoryRequestDto categoryRequestDto) {
+        Category category = categoryMapper.toEntity(categoryRequestDto);
+        
+        // Set user relationship from ID
+        User user = userRepository.findById(categoryRequestDto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        category.setUser(user);
+        
         Category savedCategory = categoryRepository.save(category);
-        return ResponseEntity.ok(savedCategory);
+        CategoryResponseDto responseDto = categoryMapper.toResponseDto(savedCategory);
+        return ResponseEntity.ok(responseDto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Integer id, @RequestBody Category categoryDetails) {
+    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable Integer id, @RequestBody CategoryRequestDto categoryRequestDto) {
         Optional<Category> optionalCategory = categoryRepository.findById(id);
         
         if (optionalCategory.isPresent()) {
             Category category = optionalCategory.get();
-            category.setName(categoryDetails.getName());
-            category.setDescription(categoryDetails.getDescription());
-            category.setColor(categoryDetails.getColor());
+            categoryMapper.updateEntityFromDto(categoryRequestDto, category);
+            
+            // Update user relationship if provided
+            if (categoryRequestDto.getUserId() != null) {
+                User user = userRepository.findById(categoryRequestDto.getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+                category.setUser(user);
+            }
             
             Category updatedCategory = categoryRepository.save(category);
-            return ResponseEntity.ok(updatedCategory);
+            CategoryResponseDto responseDto = categoryMapper.toResponseDto(updatedCategory);
+            return ResponseEntity.ok(responseDto);
         } else {
             return ResponseEntity.notFound().build();
         }
