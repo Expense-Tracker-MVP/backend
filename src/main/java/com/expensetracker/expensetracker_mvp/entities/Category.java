@@ -35,4 +35,8 @@ public class Category {
 
     @Column(length = 20)
     private String color;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean undeletable = false;
 }

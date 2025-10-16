@@ -28,6 +28,7 @@ public class CategoryService {
                 .name("All")
                 .description("Default category for all expenses")
                 .color("#6C757D")
+                .undeletable(true)
                 .build();
 
         Category savedCategory = categoryRepository.save(defaultCategory);

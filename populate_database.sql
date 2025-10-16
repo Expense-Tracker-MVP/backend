@@ -37,40 +37,40 @@ ON CONFLICT (email) DO NOTHING;
 
 -- Insert categories with explicit UUIDs
 -- John Doe
-INSERT INTO categories (id, user_id, name, description, color) VALUES
-('c1a11111-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'All', 'Default category for all expenses', '#6C757D'),
-('c1a11112-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Food & Dining', 'Restaurant meals, groceries, food delivery', '#FF6B6B'),
-('c1a11113-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Transportation', 'Public transport, taxi, fuel, car maintenance', '#4ECDC4'),
-('c1a11114-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Shopping', 'Clothing, electronics, home goods', '#45B7D1'),
-('c1a11115-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Entertainment', 'Movies, games, concerts, streaming services', '#96CEB4'),
-('c1a11116-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Healthcare', 'Medical bills, pharmacy, health insurance', '#FFEAA7'),
-('c1a11117-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Utilities', 'Electricity, water, internet, phone bills', '#DDA0DD'),
-('c1a11118-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Education', 'Courses, books, training, certification', '#98D8C8');
+INSERT INTO categories (id, user_id, name, description, color, undeletable) VALUES
+('c1a11111-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'All', 'Default category for all expenses', '#6C757D', TRUE),
+('c1a11112-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Food & Dining', 'Restaurant meals, groceries, food delivery', '#FF6B6B', FALSE),
+('c1a11113-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Transportation', 'Public transport, taxi, fuel, car maintenance', '#4ECDC4', FALSE),
+('c1a11114-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Shopping', 'Clothing, electronics, home goods', '#45B7D1', FALSE),
+('c1a11115-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Entertainment', 'Movies, games, concerts, streaming services', '#96CEB4', FALSE),
+('c1a11116-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Healthcare', 'Medical bills, pharmacy, health insurance', '#FFEAA7', FALSE),
+('c1a11117-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Utilities', 'Electricity, water, internet, phone bills', '#DDA0DD', FALSE),
+('c1a11118-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'Education', 'Courses, books, training, certification', '#98D8C8', FALSE);
 
 -- Jane Smith
-INSERT INTO categories (id, user_id, name, description, color) VALUES
-('c2a11111-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'All', 'Default category for all expenses', '#6C757D'),
-('c2a11112-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Food & Dining', 'Meals and groceries', '#FF6B6B'),
-('c2a11113-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Transportation', 'Travel and commute expenses', '#4ECDC4'),
-('c2a11114-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Rent & Housing', 'Monthly rent, housing expenses', '#FF9FF3'),
-('c2a11115-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Health & Fitness', 'Gym, medical, wellness', '#FFEAA7'),
-('c2a11116-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Personal Care', 'Beauty, grooming, self-care', '#F8BBD0');
+INSERT INTO categories (id, user_id, name, description, color, undeletable) VALUES
+('c2a11111-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'All', 'Default category for all expenses', '#6C757D', TRUE),
+('c2a11112-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Food & Dining', 'Meals and groceries', '#FF6B6B', FALSE),
+('c2a11113-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Transportation', 'Travel and commute expenses', '#4ECDC4', FALSE),
+('c2a11114-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Rent & Housing', 'Monthly rent, housing expenses', '#FF9FF3', FALSE),
+('c2a11115-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Health & Fitness', 'Gym, medical, wellness', '#FFEAA7', FALSE),
+('c2a11116-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'Personal Care', 'Beauty, grooming, self-care', '#F8BBD0', FALSE);
 
 -- Alice Johnson
-INSERT INTO categories (id, user_id, name, description, color) VALUES
-('c3a11111-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'All', 'Default category for all expenses', '#6C757D'),
-('c3a11112-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Food & Dining', 'Daily meals and dining out', '#FF6B6B'),
-('c3a11113-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Transportation', 'Travel expenses', '#4ECDC4'),
-('c3a11114-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Home & Garden', 'Home improvement, gardening', '#8FBC8F'),
-('c3a11115-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Pets', 'Pet food, vet bills, pet supplies', '#FFB347');
+INSERT INTO categories (id, user_id, name, description, color, undeletable) VALUES
+('c3a11111-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'All', 'Default category for all expenses', '#6C757D', TRUE),
+('c3a11112-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Food & Dining', 'Daily meals and dining out', '#FF6B6B', FALSE),
+('c3a11113-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Transportation', 'Travel expenses', '#4ECDC4', FALSE),
+('c3a11114-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Home & Garden', 'Home improvement, gardening', '#8FBC8F', FALSE),
+('c3a11115-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'Pets', 'Pet food, vet bills, pet supplies', '#FFB347', FALSE);
 
 -- Bob Wilson
-INSERT INTO categories (id, user_id, name, description, color) VALUES
-('c4a11111-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'All', 'Default category for all expenses', '#6C757D'),
-('c4a11112-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Food & Dining', 'Food and beverage expenses', '#FF6B6B'),
-('c4a11113-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Transportation', 'Transport and fuel', '#4ECDC4'),
-('c4a11114-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Technology', 'Gadgets, software, subscriptions', '#87CEEB'),
-('c4a11115-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Sports & Hobbies', 'Sports gear, hobby supplies', '#90EE90');
+INSERT INTO categories (id, user_id, name, description, color, undeletable) VALUES
+('c4a11111-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'All', 'Default category for all expenses', '#6C757D', TRUE),
+('c4a11112-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Food & Dining', 'Food and beverage expenses', '#FF6B6B', FALSE),
+('c4a11113-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Transportation', 'Transport and fuel', '#4ECDC4', FALSE),
+('c4a11114-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Technology', 'Gadgets, software, subscriptions', '#87CEEB', FALSE),
+('c4a11115-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'Sports & Hobbies', 'Sports gear, hobby supplies', '#90EE90', FALSE);
 
 -- =====================================================
 -- 3. INSERT SAMPLE EXPENSES

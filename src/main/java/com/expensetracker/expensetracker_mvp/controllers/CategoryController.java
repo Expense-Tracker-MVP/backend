@@ -119,7 +119,9 @@ public class CategoryController {
             if (!category.getUserId().equals(currentUser.getId())) {
                 return ResponseEntity.status(403).build();
             }
-
+            if (category.isUndeletable()) {
+                return ResponseEntity.status(403).body(null);
+            }
             categoryRepository.deleteById(id);
             return ResponseEntity.noContent().build();
         } else {
