@@ -6,10 +6,11 @@ import com.expensetracker.expensetracker_mvp.entities.Category;
 import com.expensetracker.expensetracker_mvp.entities.User;
 import com.expensetracker.expensetracker_mvp.mappers.CategoryMapper;
 import com.expensetracker.expensetracker_mvp.repositories.CategoryRepository;
-import com.expensetracker.expensetracker_mvp.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,11 +24,24 @@ import java.util.UUID;
 public class CategoryController {
 
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final CategoryMapper categoryMapper;
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof User) {
+            return (User) authentication.getPrincipal();
+        }
+        throw new RuntimeException("User not authenticated");
+    }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<CategoryResponseDto>> getCategoriesByUser(@PathVariable UUID userId) {
+        User currentUser = getCurrentUser();
+
+        if (!currentUser.getId().equals(userId)) {
+            return ResponseEntity.status(403).build();
+        }
+
         List<Category> categories = categoryRepository.findByUserIdOrderByName(userId);
         List<CategoryResponseDto> categoryDtos = categoryMapper.toResponseDtoList(categories);
         return ResponseEntity.ok(categoryDtos);
@@ -35,40 +49,57 @@ public class CategoryController {
 
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponseDto> getCategoryById(@PathVariable Integer id) {
+        User currentUser = getCurrentUser();
+
         Optional<Category> category = categoryRepository.findById(id);
-        return category.map(cat -> ResponseEntity.ok(categoryMapper.toResponseDto(cat)))
-                      .orElse(ResponseEntity.notFound().build());
+        if (category.isPresent()) {
+            if (!category.get().getUserId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).build();
+            }
+            return ResponseEntity.ok(categoryMapper.toResponseDto(category.get()));
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping
     public ResponseEntity<CategoryResponseDto> createCategory(@RequestBody CategoryRequestDto categoryRequestDto) {
+        User currentUser = getCurrentUser();
+
+        if (categoryRequestDto.getUserId() != null && !categoryRequestDto.getUserId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+
         Category category = categoryMapper.toEntity(categoryRequestDto);
-        
-        // Set user relationship from ID
-        User user = userRepository.findById(categoryRequestDto.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        category.setUser(user);
-        
+
+        category.setUser(currentUser);
+        category.setUserId(currentUser.getId());
+
         Category savedCategory = categoryRepository.save(category);
         CategoryResponseDto responseDto = categoryMapper.toResponseDto(savedCategory);
         return ResponseEntity.ok(responseDto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable Integer id, @RequestBody CategoryRequestDto categoryRequestDto) {
+    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable Integer id,
+            @RequestBody CategoryRequestDto categoryRequestDto) {
+        User currentUser = getCurrentUser();
+
         Optional<Category> optionalCategory = categoryRepository.findById(id);
-        
+
         if (optionalCategory.isPresent()) {
             Category category = optionalCategory.get();
-            categoryMapper.updateEntityFromDto(categoryRequestDto, category);
-            
-            // Update user relationship if provided
-            if (categoryRequestDto.getUserId() != null) {
-                User user = userRepository.findById(categoryRequestDto.getUserId())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
-                category.setUser(user);
+
+            if (!category.getUserId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).build();
             }
-            
+
+            if (categoryRequestDto.getUserId() != null && !categoryRequestDto.getUserId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).build();
+            }
+
+            categoryMapper.updateEntityFromDto(categoryRequestDto, category);
+
             Category updatedCategory = categoryRepository.save(category);
             CategoryResponseDto responseDto = categoryMapper.toResponseDto(updatedCategory);
             return ResponseEntity.ok(responseDto);
@@ -79,7 +110,16 @@ public class CategoryController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Integer id) {
-        if (categoryRepository.existsById(id)) {
+        User currentUser = getCurrentUser();
+
+        Optional<Category> optionalCategory = categoryRepository.findById(id);
+        if (optionalCategory.isPresent()) {
+            Category category = optionalCategory.get();
+
+            if (!category.getUserId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).build();
+            }
+
             categoryRepository.deleteById(id);
             return ResponseEntity.noContent().build();
         } else {
