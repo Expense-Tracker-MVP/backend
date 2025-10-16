@@ -54,7 +54,7 @@ public class ExpenseController {
     @GetMapping("/user/{userId}/category/{categoryId}")
     public ResponseEntity<List<ExpenseResponseDto>> getExpensesByCategory(
             @PathVariable UUID userId, 
-            @PathVariable Integer categoryId) {
+            @PathVariable UUID categoryId) {
         
         List<Expense> expenses = expenseRepository.findByUserIdAndCategoryId(userId, categoryId);
         List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);

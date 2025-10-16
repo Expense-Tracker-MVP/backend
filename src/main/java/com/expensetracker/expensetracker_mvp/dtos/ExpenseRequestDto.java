@@ -19,7 +19,7 @@ import java.util.UUID;
 @Builder
 public class ExpenseRequestDto {
     private UUID userId;
-    private Integer categoryId;
+    private UUID categoryId;
     private String description;
     private BigDecimal amount;
     private String currency;

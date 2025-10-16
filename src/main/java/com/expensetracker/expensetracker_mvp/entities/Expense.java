@@ -31,7 +31,7 @@ public class Expense {
     private User user;
 
     @Column(name = "category_id")
-    private Integer categoryId;
+    private UUID categoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", insertable = false, updatable = false)

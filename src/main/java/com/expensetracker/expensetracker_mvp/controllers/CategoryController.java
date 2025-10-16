@@ -48,7 +48,7 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponseDto> getCategoryById(@PathVariable Integer id) {
+    public ResponseEntity<CategoryResponseDto> getCategoryById(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
 
         Optional<Category> category = categoryRepository.findById(id);
@@ -81,7 +81,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable Integer id,
+    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable UUID id,
             @RequestBody CategoryRequestDto categoryRequestDto) {
         User currentUser = getCurrentUser();
 
@@ -109,7 +109,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
 
         Optional<Category> optionalCategory = categoryRepository.findById(id);

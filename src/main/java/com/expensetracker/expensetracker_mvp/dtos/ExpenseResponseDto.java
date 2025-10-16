@@ -21,7 +21,7 @@ import java.util.UUID;
 public class ExpenseResponseDto {
     private UUID id;
     private UUID userId;
-    private Integer categoryId;
+    private UUID categoryId;
     private String description;
     private BigDecimal amount;
     private String currency;

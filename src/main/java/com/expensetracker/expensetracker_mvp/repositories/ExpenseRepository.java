@@ -20,7 +20,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
     
     List<Expense> findByUserIdAndTransactionDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
     
-    List<Expense> findByUserIdAndCategoryId(UUID userId, Integer categoryId);
+    List<Expense> findByUserIdAndCategoryId(UUID userId, UUID categoryId);
     
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.userId = :userId AND e.transactionDate BETWEEN :startDate AND :endDate")
     BigDecimal sumAmountByUserIdAndDateRange(@Param("userId") UUID userId, 

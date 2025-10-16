@@ -2,6 +2,7 @@ package com.expensetracker.expensetracker_mvp.config;
 
 import com.expensetracker.expensetracker_mvp.entities.User;
 import com.expensetracker.expensetracker_mvp.repositories.UserRepository;
+import com.expensetracker.expensetracker_mvp.services.CategoryService;
 import com.expensetracker.expensetracker_mvp.services.JwtService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +27,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final CategoryService categoryService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -99,6 +101,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Create default "All" category for the new user
+        categoryService.createDefaultCategoryForUser(savedUser);
+
+        return savedUser;
     }
 }
