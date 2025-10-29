@@ -1,5 +1,6 @@
 package com.expensetracker.expensetracker_mvp.controllers;
 
+import com.expensetracker.expensetracker_mvp.dtos.ApiResponse;
 import com.expensetracker.expensetracker_mvp.dtos.ExpenseRequestDto;
 import com.expensetracker.expensetracker_mvp.dtos.ExpenseResponseDto;
 import com.expensetracker.expensetracker_mvp.entities.Category;
@@ -43,141 +44,149 @@ public class ExpenseController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByUser(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<List<ExpenseResponseDto>>> getExpensesByUser(@PathVariable UUID userId) {
         User currentUser = getCurrentUser();
         if (!currentUser.getId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
         List<Expense> expenses = expenseRepository.findByUserIdOrderByTransactionDateDesc(userId);
         List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
-        return ResponseEntity.ok(expenseDtos);
+        return ResponseEntity.ok(ApiResponse.success(expenseDtos));
     }
 
     @GetMapping("/user/{userId}/date-range")
-    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByDateRange(
+    public ResponseEntity<ApiResponse<List<ExpenseResponseDto>>> getExpensesByDateRange(
             @PathVariable UUID userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         User currentUser = getCurrentUser();
         if (!currentUser.getId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
         List<Expense> expenses = expenseRepository.findByUserIdAndTransactionDateBetween(userId, startDate, endDate);
         List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
-        return ResponseEntity.ok(expenseDtos);
+        return ResponseEntity.ok(ApiResponse.success(expenseDtos));
     }
 
     @GetMapping("/user/{userId}/category/{categoryId}")
-    public ResponseEntity<List<ExpenseResponseDto>> getExpensesByCategory(
+    public ResponseEntity<ApiResponse<List<ExpenseResponseDto>>> getExpensesByCategory(
             @PathVariable UUID userId,
             @PathVariable UUID categoryId) {
         User currentUser = getCurrentUser();
         if (!currentUser.getId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
         List<Expense> expenses = expenseRepository.findByUserIdAndCategoryId(userId, categoryId);
         List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
-        return ResponseEntity.ok(expenseDtos);
+        return ResponseEntity.ok(ApiResponse.success(expenseDtos));
     }
 
     @GetMapping("/user/{userId}/total")
-    public ResponseEntity<BigDecimal> getTotalAmountByDateRange(
+    public ResponseEntity<ApiResponse<BigDecimal>> getTotalAmountByDateRange(
             @PathVariable UUID userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         User currentUser = getCurrentUser();
         if (!currentUser.getId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
         BigDecimal total = expenseRepository.sumAmountByUserIdAndDateRange(userId, startDate, endDate);
-        return ResponseEntity.ok(total != null ? total : BigDecimal.ZERO);
+        return ResponseEntity.ok(ApiResponse.success(total != null ? total : BigDecimal.ZERO));
     }
 
     @GetMapping("/user/{userId}/recent")
-    public ResponseEntity<List<ExpenseResponseDto>> getRecentExpenses(
+    public ResponseEntity<ApiResponse<List<ExpenseResponseDto>>> getRecentExpenses(
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "30") int days) {
         User currentUser = getCurrentUser();
         if (!currentUser.getId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
         LocalDate sinceDate = LocalDate.now().minusDays(days);
         List<Expense> expenses = expenseRepository.findRecentExpensesByUserId(userId, sinceDate);
         List<ExpenseResponseDto> expenseDtos = expenseMapper.toResponseDtoList(expenses);
-        return ResponseEntity.ok(expenseDtos);
+        return ResponseEntity.ok(ApiResponse.success(expenseDtos));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExpenseResponseDto> getExpenseById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<ExpenseResponseDto>> getExpenseById(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
         Optional<Expense> expense = expenseRepository.findById(id);
         if (expense.isPresent()) {
             if (!expense.get().getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
-            return ResponseEntity.ok(expenseMapper.toResponseDto(expense.get()));
+            return ResponseEntity.ok(ApiResponse.success(expenseMapper.toResponseDto(expense.get())));
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Expense not found"));
         }
     }
 
     @PostMapping
-    public ResponseEntity<ExpenseResponseDto> createExpense(@RequestBody ExpenseRequestDto expenseRequestDto) {
+    public ResponseEntity<ApiResponse<ExpenseResponseDto>> createExpense(@RequestBody ExpenseRequestDto expenseRequestDto) {
         User currentUser = getCurrentUser();
         if (expenseRequestDto.getUserId() != null && !expenseRequestDto.getUserId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
-        Expense expense = expenseMapper.toEntity(expenseRequestDto);
-        // Set user and category relationships from IDs
-        User user = userRepository.findById(currentUser.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        Category category = categoryRepository.findById(expenseRequestDto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        expense.setUser(user);
-        expense.setCategory(category);
-        Expense savedExpense = expenseRepository.save(expense);
-        ExpenseResponseDto responseDto = expenseMapper.toResponseDto(savedExpense);
-        return ResponseEntity.ok(responseDto);
+        try {
+            Expense expense = expenseMapper.toEntity(expenseRequestDto);
+            // Set user and category relationships from IDs
+            User user = userRepository.findById(currentUser.getId())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Category category = categoryRepository.findById(expenseRequestDto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            expense.setUser(user);
+            expense.setCategory(category);
+            Expense savedExpense = expenseRepository.save(expense);
+            ExpenseResponseDto responseDto = expenseMapper.toResponseDto(savedExpense);
+            return ResponseEntity.ok(ApiResponse.success(responseDto));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(ApiResponse.error("Failed to create expense: " + e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ExpenseResponseDto> updateExpense(@PathVariable UUID id,
+    public ResponseEntity<ApiResponse<ExpenseResponseDto>> updateExpense(@PathVariable UUID id,
             @RequestBody ExpenseRequestDto expenseRequestDto) {
         User currentUser = getCurrentUser();
         Optional<Expense> optionalExpense = expenseRepository.findById(id);
         if (optionalExpense.isPresent()) {
             Expense expense = optionalExpense.get();
             if (!expense.getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
-            expenseMapper.updateEntityFromDto(expenseRequestDto, expense);
-            // Update category relationship if provided
-            if (expenseRequestDto.getCategoryId() != null) {
-                Category category = categoryRepository.findById(expenseRequestDto.getCategoryId())
-                        .orElseThrow(() -> new RuntimeException("Category not found"));
-                expense.setCategory(category);
+            try {
+                expenseMapper.updateEntityFromDto(expenseRequestDto, expense);
+                // Update category relationship if provided
+                if (expenseRequestDto.getCategoryId() != null) {
+                    Category category = categoryRepository.findById(expenseRequestDto.getCategoryId())
+                            .orElseThrow(() -> new RuntimeException("Category not found"));
+                    expense.setCategory(category);
+                }
+                Expense updatedExpense = expenseRepository.save(expense);
+                ExpenseResponseDto responseDto = expenseMapper.toResponseDto(updatedExpense);
+                return ResponseEntity.ok(ApiResponse.success(responseDto));
+            } catch (Exception e) {
+                return ResponseEntity.status(400).body(ApiResponse.error("Failed to update expense: " + e.getMessage()));
             }
-            Expense updatedExpense = expenseRepository.save(expense);
-            ExpenseResponseDto responseDto = expenseMapper.toResponseDto(updatedExpense);
-            return ResponseEntity.ok(responseDto);
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Expense not found"));
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteExpense(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteExpense(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
         Optional<Expense> optionalExpense = expenseRepository.findById(id);
         if (optionalExpense.isPresent()) {
             Expense expense = optionalExpense.get();
             if (!expense.getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
             expenseRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(ApiResponse.success());
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Expense not found"));
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.expensetracker.expensetracker_mvp.controllers;
 
+import com.expensetracker.expensetracker_mvp.dtos.ApiResponse;
 import com.expensetracker.expensetracker_mvp.dtos.CategoryRequestDto;
 import com.expensetracker.expensetracker_mvp.dtos.CategoryResponseDto;
 import com.expensetracker.expensetracker_mvp.entities.Category;
@@ -35,39 +36,39 @@ public class CategoryController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<CategoryResponseDto>> getCategoriesByUser(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<List<CategoryResponseDto>>> getCategoriesByUser(@PathVariable UUID userId) {
         User currentUser = getCurrentUser();
 
         if (!currentUser.getId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
 
         List<Category> categories = categoryRepository.findByUserIdOrderByName(userId);
         List<CategoryResponseDto> categoryDtos = categoryMapper.toResponseDtoList(categories);
-        return ResponseEntity.ok(categoryDtos);
+        return ResponseEntity.ok(ApiResponse.success(categoryDtos));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponseDto> getCategoryById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<CategoryResponseDto>> getCategoryById(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
 
         Optional<Category> category = categoryRepository.findById(id);
         if (category.isPresent()) {
             if (!category.get().getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
-            return ResponseEntity.ok(categoryMapper.toResponseDto(category.get()));
+            return ResponseEntity.ok(ApiResponse.success(categoryMapper.toResponseDto(category.get())));
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Category not found"));
         }
     }
 
     @PostMapping
-    public ResponseEntity<CategoryResponseDto> createCategory(@RequestBody CategoryRequestDto categoryRequestDto) {
+    public ResponseEntity<ApiResponse<CategoryResponseDto>> createCategory(@RequestBody CategoryRequestDto categoryRequestDto) {
         User currentUser = getCurrentUser();
 
         if (categoryRequestDto.getUserId() != null && !categoryRequestDto.getUserId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
 
         Category category = categoryMapper.toEntity(categoryRequestDto);
@@ -77,11 +78,11 @@ public class CategoryController {
 
         Category savedCategory = categoryRepository.save(category);
         CategoryResponseDto responseDto = categoryMapper.toResponseDto(savedCategory);
-        return ResponseEntity.ok(responseDto);
+        return ResponseEntity.ok(ApiResponse.success(responseDto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDto> updateCategory(@PathVariable UUID id,
+    public ResponseEntity<ApiResponse<CategoryResponseDto>> updateCategory(@PathVariable UUID id,
             @RequestBody CategoryRequestDto categoryRequestDto) {
         User currentUser = getCurrentUser();
 
@@ -91,25 +92,25 @@ public class CategoryController {
             Category category = optionalCategory.get();
 
             if (!category.getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
 
             if (categoryRequestDto.getUserId() != null && !categoryRequestDto.getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
 
             categoryMapper.updateEntityFromDto(categoryRequestDto, category);
 
             Category updatedCategory = categoryRepository.save(category);
             CategoryResponseDto responseDto = categoryMapper.toResponseDto(updatedCategory);
-            return ResponseEntity.ok(responseDto);
+            return ResponseEntity.ok(ApiResponse.success(responseDto));
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Category not found"));
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
 
         Optional<Category> optionalCategory = categoryRepository.findById(id);
@@ -117,15 +118,15 @@ public class CategoryController {
             Category category = optionalCategory.get();
 
             if (!category.getUserId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
+                return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
             }
             if (category.isUndeletable()) {
-                return ResponseEntity.status(403).body(null);
+                return ResponseEntity.status(403).body(ApiResponse.error("Category cannot be deleted"));
             }
             categoryRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(ApiResponse.success());
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Category not found"));
         }
     }
 }
