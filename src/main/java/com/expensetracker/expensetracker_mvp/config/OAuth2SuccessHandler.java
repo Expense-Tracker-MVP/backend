@@ -80,7 +80,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // Redirect to frontend with access token as URL parameter
         String redirectUrl = String.format(
-                "%s/auth/callback?token=%s&user=%s",
+                "%s/auth/callback?accessToken=%s&user=%s",
                 frontendUrl,
                 URLEncoder.encode(accessToken, StandardCharsets.UTF_8),
                 URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8));

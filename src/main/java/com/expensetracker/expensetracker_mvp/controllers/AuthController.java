@@ -53,7 +53,7 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = getRefreshTokenFromCookies(request);
-
+        log.info("Refresh token received: {}", refreshToken != null ? "present" : "absent");
         if (refreshToken == null) {
             return ResponseEntity.status(401).body(Map.of("error", "No refresh token provided"));
         }
