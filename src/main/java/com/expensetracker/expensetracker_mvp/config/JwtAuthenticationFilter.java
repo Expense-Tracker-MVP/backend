@@ -4,6 +4,7 @@ import com.expensetracker.expensetracker_mvp.services.JwtService;
 import com.expensetracker.expensetracker_mvp.repositories.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -34,15 +36,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
         
-        final String authHeader = request.getHeader("Authorization");
+        String jwt = null;
         
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (request.getCookies() != null) {
+            jwt = Arrays.stream(request.getCookies())
+                    .filter(cookie -> "accessToken".equals(cookie.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
+        }
+        
+        if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
         
         try {
-            final String jwt = authHeader.substring(7);
             final Jwt jwtToken = jwtService.validateAccessToken(jwt);
             final UUID userId = UUID.fromString(jwtToken.getClaimAsString("userId"));
             

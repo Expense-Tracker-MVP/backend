@@ -37,7 +37,7 @@ public class AuthController {
     @GetMapping("/user")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.ok(Map.of("authenticated", false));
+            return ResponseEntity.status(401).body(Map.of("authenticated", false));
         }
 
         User user = (User) authentication.getPrincipal();
@@ -68,6 +68,14 @@ public class AuthController {
             String newAccessToken = jwtService.generateAccessToken(user);
             String newRefreshToken = jwtService.generateRefreshToken(user);
 
+            // Set access token cookie
+            Cookie accessCookie = new Cookie("accessToken", newAccessToken);
+            accessCookie.setHttpOnly(true);
+            accessCookie.setSecure(false); // Set to true in production
+            accessCookie.setPath("/");
+            accessCookie.setMaxAge(15 * 60); // 15 minutes
+            response.addCookie(accessCookie);
+
             // Update refresh token cookie
             Cookie refreshCookie = new Cookie("refreshToken", newRefreshToken);
             refreshCookie.setHttpOnly(true);
@@ -77,7 +85,6 @@ public class AuthController {
             response.addCookie(refreshCookie);
 
             Map<String, Object> responseBody = new HashMap<>();
-            responseBody.put("accessToken", newAccessToken);
             responseBody.put("user", userMapper.toResponseDto(user));
 
             return ResponseEntity.ok(responseBody);
@@ -89,6 +96,14 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
+        // Clear access token cookie
+        Cookie accessCookie = new Cookie("accessToken", "");
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(false);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(0); // Delete cookie
+        response.addCookie(accessCookie);
+
         // Clear refresh token cookie
         Cookie refreshCookie = new Cookie("refreshToken", "");
         refreshCookie.setHttpOnly(true);
@@ -109,16 +124,24 @@ public class AuthController {
 
         try {
             User user = (User) authentication.getPrincipal();
-            
+
             // Log the deletion attempt
             log.info("User deletion requested for user ID: {}, email: {}", user.getId(), user.getEmail());
-            
+
             // Delete the user from the database
             userRepository.deleteById(user.getId());
-            
+
             // Clear the security context
             SecurityContextHolder.clearContext();
-            
+
+            // Clear access token cookie
+            Cookie accessCookie = new Cookie("accessToken", "");
+            accessCookie.setHttpOnly(true);
+            accessCookie.setSecure(false);
+            accessCookie.setPath("/");
+            accessCookie.setMaxAge(0); // Delete cookie
+            response.addCookie(accessCookie);
+
             // Clear refresh token cookie
             Cookie refreshCookie = new Cookie("refreshToken", "");
             refreshCookie.setHttpOnly(true);
@@ -126,14 +149,13 @@ public class AuthController {
             refreshCookie.setPath("/");
             refreshCookie.setMaxAge(0); // Delete cookie
             response.addCookie(refreshCookie);
-            
+
             log.info("User account deleted successfully for user ID: {}", user.getId());
-            
+
             return ResponseEntity.ok(Map.of(
-                "message", "User account deleted successfully",
-                "deletedUserId", user.getId().toString()
-            ));
-            
+                    "message", "User account deleted successfully",
+                    "deletedUserId", user.getId().toString()));
+
         } catch (Exception e) {
             log.error("Error deleting user account: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", "Failed to delete user account"));

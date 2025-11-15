@@ -16,8 +16,6 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 @Component
@@ -31,6 +29,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
+
+    @Value("${app.jwt.refresh-token-expiration-seconds}")
+    private String refreshTokenExpirationSeconds;
+
+    @Value("${app.jwt.access-token-expiration-seconds}")
+    private String accessTokenExpirationSeconds;
+
+    @Value("${app.jwt.cookie-set-secure}")
+    private String cookieSetSecure;
 
     @Override
     public void onAuthenticationSuccess(
@@ -71,19 +78,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String refreshToken = jwtService.generateRefreshToken(user);
 
         // Set refresh token as httpOnly cookie
-        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(false); // Set to true in production with HTTPS
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+        Cookie refreshCookie = createSecureCookie("refreshToken", refreshToken,
+                Integer.parseInt(refreshTokenExpirationSeconds));
         response.addCookie(refreshCookie);
 
-        // Redirect to frontend with access token as URL parameter
+        // Set access token as httpOnly cookie
+        Cookie accessCookie = createSecureCookie("accessToken", accessToken, Integer.parseInt(accessTokenExpirationSeconds));
+        response.addCookie(accessCookie);
+
+        // Redirect to frontend callback
         String redirectUrl = String.format(
-                "%s/auth/callback?accessToken=%s&user=%s",
-                frontendUrl,
-                URLEncoder.encode(accessToken, StandardCharsets.UTF_8),
-                URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8));
+                "%s/auth/callback?status=success",
+                frontendUrl);
 
         log.info("OAuth2 login successful for user: {}", user.getEmail());
         response.sendRedirect(redirectUrl);
@@ -107,5 +113,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         categoryService.createDefaultCategoryForUser(savedUser);
 
         return savedUser;
+    }
+
+    private Cookie createSecureCookie(String name, String value, int maxAge) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(Boolean.parseBoolean(cookieSetSecure));
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAge);
+        // Note to self
+        // SameSite attribute should be set in application.properties
+        // or via response header for better security
+        // Set cookie.setSecure to true in production with HTTPS
+        return cookie;
     }
 }
