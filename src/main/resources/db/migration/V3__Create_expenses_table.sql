@@ -3,6 +3,7 @@ CREATE TABLE expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    name VARCHAR(255),
     description TEXT,
     amount NUMERIC(12,2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'SGD',

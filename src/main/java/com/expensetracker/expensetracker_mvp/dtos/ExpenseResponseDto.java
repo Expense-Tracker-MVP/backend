@@ -22,6 +22,7 @@ public class ExpenseResponseDto {
     private UUID id;
     private UUID userId;
     private UUID categoryId;
+    private String name;
     private String description;
     private BigDecimal amount;
     private String currency;

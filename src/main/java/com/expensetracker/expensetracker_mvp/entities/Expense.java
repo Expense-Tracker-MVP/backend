@@ -37,6 +37,9 @@ public class Expense {
     @JoinColumn(name = "category_id", insertable = false, updatable = false)
     private Category category;
 
+    @Column(length = 255)
+    private String name;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
