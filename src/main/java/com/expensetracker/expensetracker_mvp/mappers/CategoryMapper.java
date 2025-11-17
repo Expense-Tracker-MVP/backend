@@ -38,5 +38,7 @@ public interface CategoryMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "undeletable", ignore = true)
     void updateEntityFromDto(CategoryRequestDto requestDto, @MappingTarget Category category);
 }

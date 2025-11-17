@@ -101,6 +101,9 @@ public class CategoryController {
 
             categoryMapper.updateEntityFromDto(categoryRequestDto, category);
 
+            category.setUser(currentUser);
+            category.setUserId(currentUser.getId());
+
             Category updatedCategory = categoryRepository.save(category);
             CategoryResponseDto responseDto = categoryMapper.toResponseDto(updatedCategory);
             return ResponseEntity.ok(ApiResponse.success(responseDto));
